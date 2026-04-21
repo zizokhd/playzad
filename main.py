@@ -3,7 +3,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import json
 import os
 
-TOKEN = "8595403205:AAF8P58SUEO1pNw1sWRvftAG3dnFXjvx-uk" # 🔐 التوكن من Render
+TOKEN = os.getenv("TOKEN") # 🔐 التوكن من Render
 ADMIN_ID = 7462244340  # 🔴 حط رقمك هنا
 application = Application.builder().token(TOKEN).build()
 forbidden_buttons = [
