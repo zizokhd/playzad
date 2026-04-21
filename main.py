@@ -5,7 +5,6 @@ import os
 
 TOKEN = os.getenv("TOKEN") # 🔐 التوكن من Render
 ADMIN_ID = 7462244340  # 🔴 حط رقمك هنا
-application = Application.builder().token(TOKEN).build()
 forbidden_buttons = [
     "📦 عرض المنتجات",
     "💰 الأسعار",
