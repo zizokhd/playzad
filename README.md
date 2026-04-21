@@ -1,2 +1,0 @@
-# playzad
-bot store
