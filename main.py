@@ -1,266 +1,207 @@
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-import json
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from telegram.ext import CommandHandler, Application, MessageHandler, CallbackQueryHandler, ContextTypes, filters, ConversationHandler
 import os
+#token bot
 
-TOKEN = os.getenv("TOKEN") # 🔐 التوكن من Render
-ADMIN_ID = 7462244340  # 🔴 حط رقمك هنا
-forbidden_buttons = [
-    "📦 عرض المنتجات",
-    "💰 الأسعار",
-    "📝 طلب",
-    "📊 احصائيات",
-    "🔙 رجوع",
-    "box : ps4 + 2 controller + 3 dvd games",
-    "box : 2 controller + 3 dvd games",
-    "dvd gamese more"
-] 
+TOKEN = os.getenv("TOKEN")
 
-# 📁 ملف البيانات
-DATA_FILE = "data.json"
-
-def load_data():
-    if not os.path.exists(DATA_FILE):
-        return {"users": {}, "orders": 0}
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
-
-data = load_data()
-
-# 🧠 تخزين الطلبات المؤقت
-user_data = {}
-
+ADMIN_ID = 7462244340
  
-# 🎛️ قائمة الزبون
-user_menu = ReplyKeyboardMarkup(
-    [["📦 عرض المنتجات"], ["📝 طلب"]],
-    resize_keyboard=True
-)
-
-# 🔐 قائمة المدير
-admin_menu = ReplyKeyboardMarkup(
-    [["📦 عرض المنتجات"], ["📝 طلب"], ["📊 احصائيات"]],
-    resize_keyboard=True
-)
-
-# 📦 المنتجات
-products_menu = ReplyKeyboardMarkup(
-    [
-        ["box : ps4 + 2 controller + 3 dvd games"],
-        ["box : 2 controller + 3 dvd games"],
-        ["dvd gamese more"],
-        ["Back"]
-    ],
-    resize_keyboard=True
-)
-
-# 💰 الأسعار
 products = {
-    "box : ps4 + 2 controller + 3 dvd games": "💰 5 ملاين ومتين الف",
-    "box : 2 controller + 3 dvd games": "💰 3 ملاين ونص",
-    "dvd gamese more": "💰 450 الف"
+
+    "Box : ps4 + 2 controller + 3 dvd games":" ملاين 5 ",
+    "Box : 2controller + 3 dvd games":"3 ملاين",
+    "dvd games more":"450 الف"
 }
 
-# 🚀 start
+#امر البدء start
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id
-
-    if user_id not in data["users"]:
-        data["users"].append(user_id)
-        save_data(data)
-
-    # 👇 يحدد القائمة حسب الشخص
-    if user_id == ADMIN_ID:
-        menu = admin_menu
-    else:
-        menu = user_menu
-
+    context.user_data.clear()
+    context.chat_data.clear()
+    buttons = [
+        ["المنتجات🛒","طلب"],
+        ["مساعدة"]
+        
+    ]
+    keyboard = ReplyKeyboardMarkup(buttons,resize_keyboard=True)
+    
     await update.message.reply_text(
-        "هلا 👋 مرحبًا في متجر PLAYZAD 🎮",
-        reply_markup=menu
+        "مرحبا بك في متجرنا ☺️",reply_markup=keyboard
     )
-
-# 💬 التعامل
-async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return ConversationHandler.END
+async def rest_order(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+# التعامل مع أزرار القائمة
+async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    user_id = update.message.chat_id
-
-    # 🔙 رجوع
-    if text == "Back":
-        if user_id in user_data:
-            del user_data[user_id]
-
-        if user_id == ADMIN_ID:
-            menu = admin_menu
-        else:
-            menu = user_menu
-
+     
+    if text == "المنتجات🛒":
+        keyboard = [
+            [InlineKeyboardButton("Box : ps4 + 2 controller + 3 dvd games", callback_data="box pro")],
+            [InlineKeyboardButton("Box : 2controller + 3 dvd games", callback_data="box minaul")],
+            [InlineKeyboardButton("Box : dvd games more", callback_data="box game")]
+        ]
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        msg = "المنتجات المتوفرة :\n\n"
+         
+            
         await update.message.reply_text(
-            "رجعناك للقائمة الرئيسية 👇",
-            reply_markup=menu
+            msg,
+            reply_markup=reply_markup
         )
-        return
-
-    # 📦 عرض المنتجات
-    if text == "📦 عرض المنتجات":
+    elif text == "مساعدة":
         await update.message.reply_text(
-            "اختر المنتج 👇",
-            reply_markup=products_menu
-        )
+        "دليل استخدام البوت🤖\n\n"
+        "مرحبًا بك في متجرنا 🛍\n\n"
+        "طريقة استخدام البوت:\n"
+        "1- اضغط زر (المنتجات) لمشاهدة المنتجات المتوفرة.\n"
+        "2- اضغط زر (طلب) لبدء طلب جديد.\n"
+        "3- أدخل معلوماتك بالترتيب:\n"
+        "   • الاسم الكامل\n"
+        "   • رقم الهاتف\n"
+        "   • الولاية\n"
+        "   • العنوان\n"
+        "4- اختر المنتج الذي تريده.\n"
+        "5- سيتم إرسال طلبك مباشرة للإدارة ✅\n\n"
+        "6- لي الغاء الطلب اكتب /cancel ❌\n"
+        "ملاحظة:\n"
+        "رقم الهاتف يجب أن يكون 10 أرقام ويبدأ بـ 05 أو 06 أو 07.\n\n"
+        
+    )
+    
+        
 
-   
+        #اسعار المنتجات
+async def prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data == "box pro":
+        await query.message.reply_text("5 ملاين 💵")
+    if query.data == "box minaul":
+        await query.message.reply_text("3 ملاين 💵")
+    if query.data == "box game":
+        await query.message.reply_text("450 الف 💵")
 
-  
-    elif text == "📊 احصائيات":
-        if user_id != ADMIN_ID:
-            await update.message.reply_text("❌ هذا الأمر غير متاح")
-            return
 
-        total_users = len(data["users"])
-        total_orders = data["orders"]
+ 
+      
 
-        await update.message.reply_text(
-            f"📊 الإحصائيات:\n"
-            f"👥 الزبائن: {total_users}\n"
-            f"🛒 الطلبات: {total_orders}"
-        )
+NAME, PHONE, STATE, ADDRESS, PRODUCT = range(5)
+
+#بدء الطلب
+async def start_order(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("اسمك الكامل :",reply_markup=ReplyKeyboardRemove())
+    return NAME
+
+async def get_name(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["name"] = update.message.text
+    await update.message.reply_text("رقم هاتفك :")
+    return PHONE
+async def get_phone(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["phone"] = update.message.text
+    await update.message.reply_text("الولاية")
+    return STATE
+async def get_state(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["state"] = update.message.text
+    await update.message.reply_text("العنوان :")
+    return ADDRESS
+
+async def get_address(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["address"] = update.message.text
+    keyboard = [
+        [InlineKeyboardButton("Box : ps4 + 2 controller + 3 dvd games", callback_data="box pro")],
+        [InlineKeyboardButton("Box : 2controller + 3 dvd games", callback_data="box minaul")],
+        [InlineKeyboardButton("Box : dvd games more", callback_data="box game")]
+    ]
+    msg2 = "اختر المنتج 😊"
+    await update.message.reply_text(
+        msg2,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return PRODUCT
+
+async def cancel_order(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    buttons = [
+        ["المنتجات🛒","طلب"],
+        ["مساعدة"]
+         
+    ]
+    keyboard = ReplyKeyboardMarkup(buttons,resize_keyboard=True)
+    await update.message.reply_text(
+        "تم الغاء الطلب ❌",
+        reply_markup=keyboard
+    )
+    return ConversationHandler.END
 
     
 
-    # 📝 بدء الطلب
-    elif text == "📝 طلب":
-        user_data[user_id] = {"step": "name"}
-        await update.message.reply_text("اكتب اسمك الكامل:")
-
-   # 📝 بدء الطلب
-    elif text == "📝 طلب":
-        user_data[user_id] = {"step": "name"}
-        await update.message.reply_text("اكتب اسمك الكامل:")
-        return
-
-# 🧠 خطوات الطلب (لازم تكون فوق عرض السعر!)
-    elif user_id in user_data:
-
-        step = user_data[user_id]["step"]
-
-        # ❌ منع الأزرار أثناء إدخال البيانات (إلا في اختيار المنتج)
-        if step != "product" and text in forbidden_buttons:
-            await update.message.reply_text("❌ اكتب البيانات المطلوبة فقط، لا تستخدم الأزرار الآن")
-            return
-
-        # 👤 الاسم
-        if step == "name":
-            name = text.strip()
-
-            # تحقق الاسم
-            if not name.replace(" ", "").isalpha():
-                await update.message.reply_text("❌ الاسم لازم يكون حروف فقط")
-                return
-
-            if len(name) < 3 or len(name) > 20:
-                await update.message.reply_text("❌ الاسم لازم يكون بين 3 و 20 حرف")
-                return
-
-            user_data[user_id]["name"] = name
-            user_data[user_id]["step"] = "phone"
-
-            await update.message.reply_text("📱 اكتب رقم هاتفك:")
-            return
-
-        # 📱 الهاتف
-        elif step == "phone":
-            phone = text.strip()
-
-            if not phone.isdigit():
-                await update.message.reply_text("❌ رقم الهاتف لازم يكون أرقام فقط")
-                return
-
-            if len(phone) != 10:
-                await update.message.reply_text("❌ رقم الهاتف لازم يكون 10 أرقام بالضبط")
-                return
-
-            if not (phone.startswith("05") or phone.startswith("06") or phone.startswith("07")):
-                await update.message.reply_text("❌ رقم الهاتف لازم يبدأ بـ 05 أو 06 أو 07")
-                return
-
-            user_data[user_id]["phone"] = phone
-            user_data[user_id]["step"] = "state"
-
-            await update.message.reply_text("📍 اكتب ولايتك:")
-            return
-
-        # 📍 الولاية
-        elif step == "state":
-            state = text.strip()
-
-            if len(state) < 3:
-                await update.message.reply_text("❌ اكتب ولاية صحيحة")
-                return
-
-            user_data[user_id]["state"] = state
-            user_data[user_id]["step"] = "address"
-
-            await update.message.reply_text("🏠 اكتب عنوانك:")
-            return
-
-        # 🏠 العنوان
-        elif step == "address":
-            address = text.strip()
-
-            if len(address) < 5:
-                await update.message.reply_text("❌ اكتب عنوان أوضح")
-                return
-
-            user_data[user_id]["address"] = address
-            user_data[user_id]["step"] = "product"
-
-            await update.message.reply_text(
-                "🛒 اختر المنتج:",
-                reply_markup=products_menu
-            )
-            return
-
-        # 🛒 اختيار المنتج
-        elif step == "product":
-
-            if text not in products:
-                await update.message.reply_text("❌ اختر من القائمة فقط")
-                return
-
-            user_data[user_id]["product"] = text
-            order = user_data[user_id]
-
-            # 📊 تحديث الطلبات
-            data["orders"] += 1
-            save_data(data)
-
-            message = f"""
-    📦 طلب جديد!
-
-    👤 الاسم: {order['name']}
-    📱 الهاتف: {order['phone']}
-    📍 الولاية: {order['state']}
-    🏠 العنوان: {order['address']}
-    🛒 المنتج: {order['product']}
-    """
-
-            await context.bot.send_message(chat_id=ADMIN_ID, text=message)
-
-            await update.message.reply_text("✅ تم إرسال طلبك بنجاح!")
-
-            del user_data[user_id]
-            return
+async def get_product(update: Update,context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    product_name = query.data
+    context.user_data["product"] = product_name
+    buttons = [
+        ["المنتجات🛒","الطلب"],
+        ["مساعدة"]
         
-    elif text in products:
-            await update.message.reply_text(products[text])
-# 🚀 تشغيل
-app = ApplicationBuilder().token(TOKEN).build()
+        ]
+    keyboard = ReplyKeyboardMarkup(
+        buttons,
+        resize_keyboard=True
+        )
+    order_text = f"""
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT, handle))
+        طلب جديد 💴💵💰
+        
+        الاسم : {context.user_data["name"]}
+        الهاتف : {context.user_data["phone"]}
+        الولاية : {context.user_data["state"]}
+        العنوان : {context.user_data["address"]}
+        المنتج : {context.user_data["product"]}
+    """
+ 
+    
+    await context.bot.send_message(chat_id=ADMIN_ID, text=order_text)
+    await query.message.reply_text(
+        "تم ارسال طلبك بنجاح ✅",
+        reply_markup = keyboard
+        )
+    
+    return ConversationHandler.END
+
+
+
+app = Application.builder().token(TOKEN).build()
+
+
+conv_handler = ConversationHandler(
+    entry_points=[
+        MessageHandler(filters.TEXT & filters.Regex("طلب"), start_order)
+    ],
+    states = {
+        NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+        PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+        STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_state)],
+        ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_address)],
+        PRODUCT: [CallbackQueryHandler(get_product)]
+    },
+    
+    fallbacks=[
+        CommandHandler("start",start),
+        CommandHandler("cancel", cancel_order),
+         
+    ],
+        allow_reentry=True
+)
+
+
+app.add_handler(CommandHandler("start",start))
+app.add_handler(conv_handler)
+app.add_handler(MessageHandler(filters.TEXT, menu))
+app.add_handler(CallbackQueryHandler(prices))
 
 app.run_polling()
